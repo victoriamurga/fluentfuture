@@ -9,9 +9,9 @@
   <body>
     <div id="header"></div>
     <main class="sign-up-page">
-      <div class="sign-in-form">
+      <div class="sign-up-form">
         <h1>Create an Account</h1>
-        <form id="sign-in-form">
+        <form id="sign-up-form">
           <label for="email">Email:</label><br />
           <input type="email" name="email" placeholder="Email" required /><br /><br />
 
@@ -39,37 +39,74 @@
       </div>
     </footer>
 
-    <!-- Firebase App (core SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-
-    <!-- Firebase Auth -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
     <script type="module">
+      import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
       import { auth } from './firebase-config.js';
       import { createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+      import { db } from './firebase-config.js';
 
       document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('sign-up-form');
         const message = document.getElementById('sign-up-message');
 
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
           e.preventDefault();
-          const email = form.email.value;
-          const password = form.password.value;
+          const emailInput = form.querySelector('input[name="email"]');
+          const passwordInput = form.querySelector('input[name="password"]');
 
-          createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-              message.textContent = 'Account created! Redirecting...';
-              setTimeout(() => (window.location.href = 'dashboard.html'), 1500);
-            })
-            .catch((error) => {
-              message.textContent = 'Error: ' + error.message;
+          const email = emailInput.value;
+          const password = passwordInput.value;
+
+          message.textContent = 'Processing...';
+          message.style.color = 'orange';
+
+          try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              createdAt: new Date(),
+              level: 'A1',
+              progress: 0,
             });
+
+            console.log('User + Firestore profile created:', user.uid);
+
+            message.textContent = 'Account created successfully! Redirecting...';
+            message.style.color = 'green';
+
+            setTimeout(() => {
+              window.location.href = 'dashboard.html';
+            }, 1500);
+          } catch (error) {
+            console.error('Firebase Sign Up Error:', error);
+
+            let errorMessage = 'An unknown error occurred.';
+            if (error.code) {
+              // Map common Firebase error codes to user-friendly messages
+              switch (error.code) {
+                case 'auth/email-already-in-use':
+                  errorMessage = 'This email address is already registered.';
+                  break;
+                case 'auth/invalid-email':
+                  errorMessage = 'Please enter a valid email address.';
+                  break;
+                case 'auth/weak-password':
+                  errorMessage = 'Password must be at least 6 characters long.';
+                  break;
+                default:
+                  errorMessage = `Error: ${error.message}`;
+              }
+            }
+            message.textContent = errorMessage;
+            message.style.color = 'red';
+          }
         });
       });
     </script>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
   </body>
 </html>

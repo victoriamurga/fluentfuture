@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,125 +6,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard | Fluent Future</title>
   <link rel="stylesheet" href="styles.css?v=1.2" />
-    <div id="header"></div>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  
 </head>
 <body>
+  <div id="header"></div>
 
+  <main class="dashboard-page">
+    <section class="dashboard-box">
+      <h1 >Welcome!</h1>
+      <p>You are signed in as <strong id="user-email">...</strong></p>
+      <p>Your Level: (<span id="user-level"></span>)</p>
+      <button id="sign-out-button" class="auth-button">Sign Out</button>
+    </section>
+    <section>
+      <div id="test-progress"></div>
+    </section>
+  </main>
 
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Fluent Future. Brought to you by Murha Viktoriia.</p>
+      <nav>
+        <ul class="footer-nav">
+          <li><a href="level-test.html">Level Test</a></li>
+          <li><a href="lessons.html">Lessons</a></li>
+          <li><a href="https://fluentfutureblog.blogspot.com">Blog</a></li>
+          <li><a href="dashboard.html">Learner Profile</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
 
+  <script type="module">
 
-<main class="dashboard-page">
-  <section class="dashboard-box">
-    <h1>Welcome!</h1>
-    <p>You are signed in as <strong id="user-email">...</strong></p>
-	
-	<p>Your User Level: (<span id="user-level"></span>)</p>
-	
-    <button id="sign-out-button" class="auth-button">Sign Out</button>
-  </section>
-  
-  
-  
-  <section>
-  <div id="test-progress"></div>
-  <section/>
-  
-</main>
+    import { auth, db } from './firebase-config.js';
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
+    document.addEventListener('DOMContentLoaded', () => {
+      const emailSpan = document.getElementById('user-email');
+      const levelSpan = document.getElementById('user-level');
+      const testProgressContainer = document.getElementById('test-progress');
+      const signOutBtn = document.getElementById('sign-out-button');
 
-
-
-
-
-<footer>
-  <div class="container">
-    <p>&copy; 2025 Fluent Future. Brought to you by Murha Viktoriia.</p>
-    <nav>
-      <ul class="footer-nav">
-        <li><a href="level-test.html">Level Test</a></li>
-        <li><a href="lessons.html">Lessons</a></li>
-        <li><a href="https://fluentfutureblog.blogspot.com">Blog</a></li>
-        <li><a href="dashboard.html">Learner Profile</a></li>
-      </ul>
-    </nav>
-  </div>
-</footer>
-
-<!-- Firebase App (core SDK) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-
-<!-- Firebase Auth -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-
-<script type="module">
-import { auth, db } from './firebase-config.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-document.addEventListener('DOMContentLoaded', () => {
-  const emailSpan = document.getElementById('user-email');
-  const levelSpan = document.getElementById('user-level');
-  const testProgressContainer = document.getElementById('test-progress');
-  const signOutBtn = document.getElementById('sign-out-button');
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      // Not signed in, redirect
-      window.location.href = 'sign-in.html';
-      return;
-    }
-
-    // Display user email
-    emailSpan.textContent = user.email;
-
-    // Fetch user data from Firestore
-    const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data();
-
-      levelSpan.textContent = userData.level || 'Level not set';
-
-      // Show test results
-      const testResults = userData.testResults || {};
-      testProgressContainer.innerHTML = "<h3>Your Test Progress</h3>";
-
-      if (Object.keys(testResults).length === 0) {
-        testProgressContainer.innerHTML += "<p>No tests taken yet.</p>";
-      } else {
-        const ul = document.createElement("ul");
-        for (const testName in testResults) {
-          const { score, date } = testResults[testName];
-          const li = document.createElement("li");
-          li.textContent = `${testName}: ${score}/10 (Last taken: ${date})`;
-          ul.appendChild(li);
+      // Authentication State Listener
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // Not signed in, redirect
+          window.location.href = 'sign-in.html';
+          return;
         }
-        testProgressContainer.appendChild(ul);
-      }
-    } else {
-      levelSpan.textContent = 'Level not set';
-      testProgressContainer.innerHTML = "<h3>Your Test Progress</h3><p>No tests taken yet.</p>";
-    }
-  });
 
-  signOutBtn?.addEventListener('click', () => {
-    signOut(auth).then(() => {
-      window.location.href = 'sign-in.html';
+        // Display user email
+        emailSpan.textContent = user.email;
+
+        try {
+          // Fetch user data from Firestore
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+
+            levelSpan.textContent = userData.level || 'Level not set';
+
+            // Show test results
+            const testResults = userData.testResults || {};
+            testProgressContainer.innerHTML = '<h3>Your Test Progress</h3>';
+
+            if (Object.keys(testResults).length === 0) {
+              testProgressContainer.innerHTML += '<p>No tests taken yet.</p>';
+            } else {
+              const ul = document.createElement("ul");
+              for (const testName in testResults) {
+                const { score, date } = testResults[testName];
+                const li = document.createElement("li");
+                li.textContent = `${testName}: ${score}/10 (Last taken: ${date})`;
+                ul.appendChild(li);
+              }
+              testProgressContainer.appendChild(ul);
+            }
+          } else {
+            // User exists in auth but has no corresponding document in Firestore
+            levelSpan.textContent = 'Profile not found';
+            testProgressContainer.innerHTML = '<h3>Your Test Progress</h3><p>Please complete your initial setup to create a user profile.</p>';
+          }
+        } catch (error) {
+          // Catch the Permission Denied error here, and display a clean message
+          console.error("Error fetching user data. Check Firebase Security Rules.", error);
+          levelSpan.textContent = 'Error loading profile';
+          testProgressContainer.innerHTML = '<h3>Your Test Progress</h3><p style="color: red;">Failed to load data. Check Firebase permissions in the console.</p>';
+        }
+      });
+
+      // Sign Out Handler
+      signOutBtn?.addEventListener('click', () => {
+        signOut(auth).then(() => {
+          window.location.href = 'sign-in.html';
+        }).catch((error) => {
+          console.error("Sign out failed:", error);
+        });
+      });
     });
-  });
-});
-</script>
-  
-  
-  
-    <script src="script.js"></script>
-  
-  
+  </script>
+
+<script type="module" src="script.js"></script> 
 </body>
 </html>
